@@ -4,6 +4,7 @@ import pygame
 from random import random
 from settings import Settings
 from button import Button
+from scoreboard import Scoreboard
 
 class SnakeGame:
 
@@ -18,6 +19,9 @@ class SnakeGame:
 
         self.grid = []
         self._create_board()
+
+        # Initialize score board
+        self.sb = Scoreboard(self)
         
         # Create movement flags
         self.right = False
@@ -47,6 +51,7 @@ class SnakeGame:
                 self._update_board()
 
             self._check_game_status()
+            self.sb.show_score()
             pygame.display.flip()
 
     def _check_game_status(self):
@@ -62,7 +67,7 @@ class SnakeGame:
             self.settings.game_active = False
             self._reset_movement()
             self.settings.high_score = self.settings.score
-            self.settings.reset_stats() 
+            self.settings.reset_stats()
 
     def _set_starting_pos(self):
         """Set snake and food starting position."""
@@ -105,6 +110,7 @@ class SnakeGame:
                 self._start_game()
 
     def _start_game(self):
+        self.sb.prep_score()
         self.settings.game_active = True
         self.settings.reset_stats()
         self.screen.fill(self.settings.bg_color)
@@ -136,7 +142,7 @@ class SnakeGame:
         self.number_of_columns = remaining_space // (box_size
             + self.settings.margin)
 
-        remaining_space = screen_height - 2 * box_size
+        remaining_space = screen_height - box_size - 100
         self.number_of_rows = remaining_space // (box_size
             + self.settings.margin)
 
@@ -158,10 +164,18 @@ class SnakeGame:
 
     def _update_board(self):
         """Draw the rid, snake, and foot onto screen."""
-
+        self.screen.fill(self.settings.bg_color)
+        
         # Check if snake ate food
         if self.snake[0] == self.apple_cord:
             self.snake.append(self.snake[-1:])
+
+            # Update score
+            self.settings.score += 1
+            self.sb.prep_score()
+            self.sb.check_high_score()
+
+            # Create new apple
             self._create_apple()
 
         box_size = self.settings.box_size
@@ -177,10 +191,9 @@ class SnakeGame:
                 else:
                     color = (83, 83, 83)
                 square = pygame.rect.Rect(int(box_size + (box_size + 2)*column),
-                    int(box_size + (box_size + 2)*row), box_size, box_size)
+                    int(100 + (box_size + 2)*row), box_size, box_size)
                 pygame.draw.rect(self.screen, color, square, 0)
-
-                
+     
 if __name__ == "__main__":
     game = SnakeGame()
     game.run_game()
