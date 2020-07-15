@@ -3,34 +3,71 @@ import pygame
 
 from random import random
 from settings import Settings
+from button import Button
 
 class SnakeGame:
 
     def __init__(self):
 
+        pygame.init()
         self.settings = Settings()
         self.screen = pygame.display.set_mode((self.settings.screen_width,
                  self.settings.screen_height))
         self.screen.fill(self.settings.bg_color)
+        self.button = Button(self, "Play")
+
         self.grid = []
         self._create_board()
-        self.snake = [[1, 3], [1, 2], [1, 1]]
         
         # Create movement flags
-        self.right = True
+        self.right = False
         self.left = False
         self.up = False
         self.down = False
         
+        # set apple and snake cooridinates
+        self._set_starting_pos()
 
+        # Update board
+        self._update_board()
+        self.button.draw_button()
+
+        # To not allow player to go left at the start
+        self.first_move = True
+    
     def run_game(self):
         """ Main game loop. """
         while True:
-            pygame.time.wait(120)
+
+            pygame.time.wait(125)
             self._check_events()
-            self._move_snake()
-            self._update_board()
+
+            if self.settings.game_active:
+                self._move_snake()
+                self._update_board()
+
+            self._check_game_status()
             pygame.display.flip()
+
+    def _check_game_status(self):
+        """Check whether the player lost or not."""
+        head = self.snake[0]
+        # If snake head is outside of grid or in itself, end game.
+        if (head in self.snake[1:] or head[0] < 0 or
+            head[0] > self.number_of_rows - 1 or head[1] < 0 or
+            head[1] > self.number_of_columns - 1):
+
+            self.button.draw_button()
+            self._set_starting_pos()
+            self.settings.game_active = False
+            self._reset_movement()
+            self.settings.high_score = self.settings.score
+            self.settings.reset_stats() 
+
+    def _set_starting_pos(self):
+        """Set snake and food starting position."""
+        self.snake = [[1, 3], [1, 2], [1, 1]]
+        self.apple_cord = [1, 10]
 
     def _reset_movement(self):
         """Resets movement flags."""
@@ -40,16 +77,18 @@ class SnakeGame:
         self.up = False
         self.down = False
 
-
     def _check_events(self):
+        """Function to check player input."""
+
         event = pygame.event.poll()
         if event.type == pygame.QUIT:
             sys.exit()
-        elif event.type == pygame.KEYDOWN:
+        elif event.type == pygame.KEYDOWN and self.settings.game_active:
             if event.key == pygame.K_RIGHT and not self.left:
                 self._reset_movement()
                 self.right = True
-            elif event.key == pygame.K_LEFT and not self.right:
+            elif (event.key == pygame.K_LEFT and not self.right and 
+                    not self.first_move):
                 self._reset_movement()
                 self.left = True
             elif event.key == pygame.K_UP and not self.down:
@@ -58,8 +97,21 @@ class SnakeGame:
             elif event.key == pygame.K_DOWN and not self.up:
                 self._reset_movement()
                 self.down = True
+            self.first_move = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+            button_clicked = self.button.rect.collidepoint(mouse_pos)
+            if button_clicked and not self.settings.game_active:
+                self._start_game()
+
+    def _start_game(self):
+        self.settings.game_active = True
+        self.settings.reset_stats()
+        self.screen.fill(self.settings.bg_color)
+        self.first_move = True
 
     def _move_snake(self):
+        "Update snake location depending on movement flag."
         if self.right:
             self.snake.insert(0, [self.snake[0][0], self.snake[0][1] + 1])
             self.snake.pop()
@@ -93,21 +145,40 @@ class SnakeGame:
             for column in range(self.number_of_columns):
                 self.grid[row].append(0)
 
+    def _create_apple(self):
+        """Create apple grid coordinates. """
+
+        while True:
+            apple_row = int(self.number_of_rows * random())
+            apple_column = int(self.number_of_columns * random())
+            if [apple_row, apple_column] not in self.snake:
+                break
+
+        self.apple_cord = [apple_row, apple_column]
+
     def _update_board(self):
-        """Draw grid onto board."""
+        """Draw the rid, snake, and foot onto screen."""
+
+        # Check if snake ate food
+        if self.snake[0] == self.apple_cord:
+            self.snake.append(self.snake[-1:])
+            self._create_apple()
+
         box_size = self.settings.box_size
         color = (83, 83, 83)
         for row in range(self.number_of_rows):
             for column in range(self.number_of_columns):
                 coordinate = [row, column]
+                # draw snake, grid and food
                 if coordinate in self.snake:
                     color = (255, 255, 255)
+                elif coordinate == self.apple_cord:
+                    color = (255, 0, 0)
                 else:
                     color = (83, 83, 83)
                 square = pygame.rect.Rect(int(box_size + (box_size + 2)*column),
                     int(box_size + (box_size + 2)*row), box_size, box_size)
                 pygame.draw.rect(self.screen, color, square, 0)
-                
 
                 
 if __name__ == "__main__":
