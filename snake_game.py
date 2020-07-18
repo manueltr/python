@@ -43,7 +43,7 @@ class SnakeGame:
         """ Main game loop. """
         while True:
 
-            pygame.time.wait(125)
+            pygame.time.wait(115)
             self._check_events()
 
             if self.settings.game_active:
@@ -62,6 +62,7 @@ class SnakeGame:
             head[0] > self.number_of_rows - 1 or head[1] < 0 or
             head[1] > self.number_of_columns - 1):
 
+            pygame.mouse.set_visible(True)
             self.button.draw_button()
             self._set_starting_pos()
             self.settings.game_active = False
@@ -110,6 +111,7 @@ class SnakeGame:
                 self._start_game()
 
     def _start_game(self):
+        pygame.mouse.set_visible(False)
         self.sb.prep_score()
         self.settings.game_active = True
         self.settings.reset_stats()
@@ -117,7 +119,7 @@ class SnakeGame:
         self.first_move = True
 
     def _move_snake(self):
-        "Update snake location depending on movement flag."
+        "Update snake location depending on movement flags."
         if self.right:
             self.snake.insert(0, [self.snake[0][0], self.snake[0][1] + 1])
             self.snake.pop()
@@ -163,9 +165,9 @@ class SnakeGame:
         self.apple_cord = [apple_row, apple_column]
 
     def _update_board(self):
-        """Draw the rid, snake, and foot onto screen."""
+        """Draw the grid, snake, and food onto screen."""
         self.screen.fill(self.settings.bg_color)
-        
+
         # Check if snake ate food
         if self.snake[0] == self.apple_cord:
             self.snake.append(self.snake[-1:])
@@ -183,13 +185,18 @@ class SnakeGame:
         for row in range(self.number_of_rows):
             for column in range(self.number_of_columns):
                 coordinate = [row, column]
+
                 # draw snake, grid and food
                 if coordinate in self.snake:
-                    color = (255, 255, 255)
+                    if coordinate == self.snake[0]:
+                        color = (0, 0, 255)
+                    else:
+                        color = (255, 255, 255)
                 elif coordinate == self.apple_cord:
                     color = (255, 0, 0)
                 else:
                     color = (83, 83, 83)
+                
                 square = pygame.rect.Rect(int(box_size + (box_size + 2)*column),
                     int(100 + (box_size + 2)*row), box_size, box_size)
                 pygame.draw.rect(self.screen, color, square, 0)
